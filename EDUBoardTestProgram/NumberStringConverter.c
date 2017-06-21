@@ -108,7 +108,7 @@ int convert_float_string(float number, char* resultString, int decimalPlaces) {
 		i = numberOfDigits;
 		for(j=0;j<8;j++) {
 			if(j == (numberOfDigits-decimalPlaces-1)) {
-				tempString2[j] = ',';
+				tempString2[j] = '.';
 			} else {
 				if(i > 0) {
 					tempString2[j] = tempString1[i-2];
