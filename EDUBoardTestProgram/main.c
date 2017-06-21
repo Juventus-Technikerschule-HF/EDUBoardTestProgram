@@ -206,3 +206,7 @@ ISR(USARTC0_RXC_vect) {
 	USARTC0.DATA = c;
 }
 
+ISR(USARTC0_TXC_vect) {
+
+}
+
