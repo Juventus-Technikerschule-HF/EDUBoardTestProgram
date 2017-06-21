@@ -11,16 +11,19 @@
 #include "LSM9DS1Driver.h"
 #include "NumberStringConverter.h"
 #include "GPIODebug.h"
+#include "ButtonHandler.h"
+
+#define SOFTWARE_VERSION 1.1
+
+uint8_t hundredMsFlag = 0;
+uint8_t tenMsFlag = 0;
 
 void initPorts() {
 	PORTF.DIRSET = PIN0_bm; //LED1
 	PORTF.DIRSET = PIN1_bm; //LED2
 	PORTF.DIRSET = PIN2_bm; //LED3
 	PORTF.DIRSET = PIN3_bm; //LED4
-	PORTF.DIRCLR = PIN4_bm; //SW1
-	PORTF.DIRCLR = PIN5_bm; //SW2
-	PORTF.DIRCLR = PIN6_bm; //SW3
-	PORTF.DIRCLR = PIN7_bm; //SW4
+	
 	PORTE.DIRSET = PIN0_bm; //LED5
 	PORTE.DIRSET = PIN1_bm; //LED6
 	PORTE.DIRSET = PIN2_bm; //LED7
@@ -94,12 +97,203 @@ void initUART(void) {
 	USARTC0.BAUDCTRLB = 0;
 }
 
-uint8_t hundredMsFlag = 0;
+typedef enum mode_tag {
+	MODE_INIT,
+	MODE_SCREEN_MAIN,
+	MODE_SCREEN_TEMP,
+	MODE_SCREEN_GYRO,
+	MODE_SCREEN_ACC,
+	MODE_SCREEN_MAG,
+	MODE_SCREEN_LED,
+	MODE_SCREEN_BUTTON,
+	MODE_SCREEN_AD,
+	MODE_SCREEN_UART
+} mode_t;
+
+void modeHandler(void) {
+	static mode_t programmode = MODE_INIT;
+	static uint8_t waitTimer = 50;
+	static uint8_t actualLed = 0;
+	static uint8_t buttonDelay = 0;
+	char numberString[6] = "      ";
+	//setPin(OFF);
+	if(buttonDelay == 0) {
+		displayBufferClear();
+	}
+	switch(programmode) {
+		case MODE_INIT:
+			displayBufferWriteStringAtPos(0,4, "Init\0");
+			if(waitTimer == 0) {
+				programmode = MODE_SCREEN_MAIN;
+			}
+		break;
+		case MODE_SCREEN_MAIN:
+			displayBufferWriteStringAtPos(0,4, "Main-Screen");
+			displayBufferWriteStringAtPos(1, 0, "EDUBoardTestProgram");			
+			convert_float_string(SOFTWARE_VERSION, numberString, 1);
+			displayBufferWriteStringAtPos(2,4, "Version: ");
+			displayBufferWriteStringAtPos(2, 13, numberString);
+			displayBufferWriteStringAtPos(3,0, ">Press Button1<");
+			if(getButtonPress(BUTTON1) == SHORT_PRESSED) {
+				programmode = MODE_SCREEN_TEMP;
+			}
+		break;
+		case MODE_SCREEN_TEMP:
+			displayBufferWriteStringAtPos(0,4,"Temperature:");
+			convert_float_string(getTemperatureData(), numberString, 2);
+			displayBufferWriteStringAtPos(2,4,"Temp:       C");
+			displayBufferWriteCharAtPos(2,15,0xDF);
+			displayBufferWriteStringAtPos(2,10, numberString);
+			displayBufferWriteStringAtPos(3,0, ">Press Button1<");
+			if(getButtonPress(BUTTON1) == SHORT_PRESSED) {
+				programmode = MODE_SCREEN_GYRO;
+			}
+		break;
+		case MODE_SCREEN_GYRO:
+			displayBufferWriteStringAtPos(0,4,"Gyroscope:");
+			displayBufferWriteStringAtPos(1,2, "x     y     z");
+			convert_sint_string(getGyroData(X_AXIS), numberString);
+			displayBufferWriteStringAtPos(2, 0, numberString);
+			convert_sint_string(getGyroData(Y_AXIS), numberString);
+			displayBufferWriteStringAtPos(2, 7, numberString);
+			convert_sint_string(getGyroData(Z_AXIS), numberString);
+			displayBufferWriteStringAtPos(2, 14, numberString);
+			displayBufferWriteStringAtPos(3,0, ">Press Button1<");
+			if(getButtonPress(BUTTON1) == SHORT_PRESSED) {
+				programmode = MODE_SCREEN_ACC;
+			}
+		break;
+		case MODE_SCREEN_ACC:
+			displayBufferWriteStringAtPos(0,4,"Accelerometer:");
+			displayBufferWriteStringAtPos(1,2, "x     y     z");
+			convert_sint_string(getACCData(X_AXIS), numberString);
+			displayBufferWriteStringAtPos(2, 0, numberString);
+			convert_sint_string(getACCData(Y_AXIS), numberString);
+			displayBufferWriteStringAtPos(2, 7, numberString);
+			convert_sint_string(getACCData(Z_AXIS), numberString);
+			displayBufferWriteStringAtPos(2, 14, numberString);
+			displayBufferWriteStringAtPos(3,0, ">Press Button1<");
+			if(getButtonPress(BUTTON1) == SHORT_PRESSED) {
+				programmode = MODE_SCREEN_MAG;
+			}
+		break;
+		case MODE_SCREEN_MAG:
+			displayBufferWriteStringAtPos(0,4,"Magnetometer:");
+			displayBufferWriteStringAtPos(1,2, "x     y     z");
+			convert_sint_string(getMagData(X_AXIS), numberString);
+			displayBufferWriteStringAtPos(2, 0, numberString);
+			convert_sint_string(getMagData(Y_AXIS), numberString);
+			displayBufferWriteStringAtPos(2, 7, numberString);
+			convert_sint_string(getMagData(Z_AXIS), numberString);
+			displayBufferWriteStringAtPos(2, 14, numberString);
+			displayBufferWriteStringAtPos(3,0, ">Press Button1<");
+			if(getButtonPress(BUTTON1) == SHORT_PRESSED) {
+				programmode = MODE_SCREEN_LED;
+			}
+		break;
+		case MODE_SCREEN_LED:			
+			displayBufferWriteStringAtPos(0,4,"LED-Test:");
+			displayBufferWriteStringAtPos(3,0, ">Press Button1<");
+			if(waitTimer == 0) {
+				waitTimer = 10;
+				PORTF.OUT |= 0x0F;
+				PORTE.OUT |= 0x0F;
+				switch(actualLed) {
+					case 0: PORTF.OUT &= ~(0x01 << actualLed); break;
+					case 1: PORTF.OUT &= ~(0x01 << actualLed); break;
+					case 2: PORTF.OUT &= ~(0x01 << actualLed); break;
+					case 3: PORTF.OUT &= ~(0x01 << actualLed); break;
+					case 4: PORTE.OUT &= ~(0x01 << (actualLed-4)); break;
+					case 5: PORTE.OUT &= ~(0x01 << (actualLed-4)); break;
+					case 6: PORTE.OUT &= ~(0x01 << (actualLed-4)); break;
+					case 7: PORTE.OUT &= ~(0x01 << (actualLed-4)); break;
+				}
+				actualLed++;
+				if(actualLed > 7) {
+					actualLed = 0;
+				}
+			}
+			if(getButtonPress(BUTTON1) == SHORT_PRESSED) {
+				waitTimer = 0;
+				PORTF.OUT |= 0x0F;
+				PORTE.OUT |= 0x0F;
+				programmode = MODE_SCREEN_BUTTON;
+			}
+		break;
+		case MODE_SCREEN_BUTTON:
+			displayBufferWriteStringAtPos(0,4,"Button-Test:");
+			displayBufferWriteStringAtPos(1,0,"Button: ");
+			displayBufferWriteStringAtPos(2,0,"Type:   ");
+			if(getButtonPress(BUTTON2) == SHORT_PRESSED) {
+				displayBufferWriteStringAtPos(1,8,"B2");
+				displayBufferWriteStringAtPos(2,8,"Short");
+				buttonDelay = 50;
+			}
+			if(getButtonPress(BUTTON2) == LONG_PRESSED) {
+				displayBufferWriteStringAtPos(1,8,"B2");
+				displayBufferWriteStringAtPos(2,8,"Long");
+				buttonDelay = 50;
+			}
+			if(getButtonPress(BUTTON3) == SHORT_PRESSED) {
+				displayBufferWriteStringAtPos(1,8,"B3");
+				displayBufferWriteStringAtPos(2,8,"Short");
+				buttonDelay = 50;
+			}
+			if(getButtonPress(BUTTON3) == LONG_PRESSED) {
+				displayBufferWriteStringAtPos(1,8,"B3");
+				displayBufferWriteStringAtPos(2,8,"Long");
+				buttonDelay = 50;
+			}
+			if(getButtonPress(BUTTON4) == SHORT_PRESSED) {
+				displayBufferWriteStringAtPos(1,8,"B4");
+				displayBufferWriteStringAtPos(2,8,"Short");
+				buttonDelay = 50;
+			}
+			if(getButtonPress(BUTTON4) == LONG_PRESSED) {
+				displayBufferWriteStringAtPos(1,8,"B4");
+				displayBufferWriteStringAtPos(2,8,"Long");
+				buttonDelay = 50;
+			}
+			displayBufferWriteStringAtPos(3,0, ">Press Button1<");
+			if(getButtonPress(BUTTON1) == SHORT_PRESSED) {
+				buttonDelay = 0;
+				programmode = MODE_SCREEN_AD;
+			}
+		break;
+		case MODE_SCREEN_AD:
+			displayBufferWriteStringAtPos(0,4,"AD-Values:");
+			displayBufferWriteStringAtPos(1,0,"Pot1: ");
+			convert_uint_string(adResult0, numberString);
+			displayBufferWriteStringAtPos(1, 6, numberString);
+			displayBufferWriteStringAtPos(3,0, ">Press Button1<");
+			if(getButtonPress(BUTTON1) == SHORT_PRESSED) {
+				programmode = MODE_SCREEN_UART;
+			}
+		break;
+		case MODE_SCREEN_UART:
+			displayBufferWriteStringAtPos(0,4,"UART-Monitor:");
+			displayBufferWriteStringAtPos(3,0, ">Press Button1<");
+			if(getButtonPress(BUTTON1) == SHORT_PRESSED) {
+				programmode = MODE_SCREEN_MAIN;
+			}
+		break;
+	}
+	if(waitTimer > 0) {
+		waitTimer--;
+	}
+	if(buttonDelay > 0) {
+		buttonDelay--;
+	}
+	//setPin(ON);
+}
+
+
 
 int main(void)
 {
     clockInit();
 	initPorts();
+	initButtons();
 	setupPin();
 	
 	displayInit();
@@ -115,76 +309,42 @@ int main(void)
 	
 	PORTF.OUT |= 0x0F;
 	PORTE.OUT |= 0x0F;
-
-
-	
-	char line1String[] = "Temp:      AD:";
-	char line2String[] = "Gyro:";
-	char line3String[] = "ACC :";
-	char line4String[] = "MAG :";
-	char numberString[6];
-	
+		
     while (1) 
     {
+		//setPin(OFF);
 		displayUpdateWorker();
+		//setPin(ON);
+		if(tenMsFlag != 0) {
+			tenMsFlag = 0;
+			updateButtons();
+			modeHandler();
+		}
+
 		if(hundredMsFlag != 0) {			
 			hundredMsFlag = 0;
-			//setPin(OFF);
-			//USARTE1.DATA = 'M';
 			readTempData();
 			readGyroData();
 			readACCData();
-			readMagData();
-			displayBufferClear();
-			displayBufferWriteStringAtPos(LINE_1, 0, line1String);
-			displayBufferWriteStringAtPos(LINE_2, 0, line2String);
-			displayBufferWriteStringAtPos(LINE_3, 0, line3String);
-			displayBufferWriteStringAtPos(LINE_4, 0, line4String);
-			convert_float_string(getTemperatureData(), numberString, 2);
-			displayBufferWriteStringAtPos(LINE_1, 5, numberString);
-			convert_uint_string(adResult0, numberString);
-			displayBufferWriteStringAtPos(LINE_1, 14, numberString);
-
-			convert_sint_string(getGyroData(X_AXIS), numberString);
-			displayBufferWriteStringAtPos(LINE_2, 5, numberString);
-			convert_sint_string(getGyroData(Y_AXIS), numberString);
-			displayBufferWriteStringAtPos(LINE_2, 10, numberString);
-			convert_sint_string(getGyroData(Z_AXIS), numberString);
-			displayBufferWriteStringAtPos(LINE_2, 15, numberString);
-
-			convert_sint_string(getACCData(X_AXIS), numberString);
-			displayBufferWriteStringAtPos(LINE_3, 5, numberString);
-			convert_sint_string(getACCData(Y_AXIS), numberString);
-			displayBufferWriteStringAtPos(LINE_3, 10, numberString);
-			convert_sint_string(getACCData(Z_AXIS), numberString);
-			displayBufferWriteStringAtPos(LINE_3, 15, numberString);
-
-			convert_sint_string(getMagData(X_AXIS), numberString);
-			displayBufferWriteStringAtPos(LINE_4, 5, numberString);
-			convert_sint_string(getMagData(Y_AXIS), numberString);
-			displayBufferWriteStringAtPos(LINE_4, 10, numberString);
-			convert_sint_string(getMagData(Z_AXIS), numberString);
-			displayBufferWriteStringAtPos(LINE_4, 15, numberString);
-			//setPin(ON);
+			readMagData();			
 		}		
     }
 }
 
 ISR(TCC0_OVF_vect) 
 {	
-	static uint8_t count = 0;
-	/*if(PORTF.IN & 0x01 == 0x01) {
-		PORTF.OUT &= 0xFE;
-	} else {
-		PORTF.OUT |= 0x01;
-	}*/
+	static uint8_t count = 1;
+	
 	ADCA.CH0.CTRL |= 0x80; //Startbit at MSB
+	if(count % 10 == 0) {		
+		tenMsFlag = 1;		
+	}
 	if(count >= 100) {
-		count = 0;
+		count = 1;
 		hundredMsFlag = 1;
 	} else {
 		count++;
-	}
+	}	
 }
 ISR(ADCA_CH0_vect) {
 	adResult0 = ADCA.CH0.RES;

@@ -154,6 +154,12 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="ButtonHandler.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="ButtonHandler.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="GPIODebug.c">
       <SubType>compile</SubType>
     </Compile>
