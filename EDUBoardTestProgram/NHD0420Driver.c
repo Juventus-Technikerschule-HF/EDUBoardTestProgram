@@ -7,7 +7,7 @@
  #include <avr/io.h>
  #include <avr/interrupt.h>
  #include "NHD0420Driver.h"
- 
+ #include "GPIODebug.h"
 
  uint32_t cpuFrequency = 32000000;
 
@@ -16,7 +16,7 @@
  char displayBuffer[4][20];
 
  void delayUS(uint32_t us) {
-	uint32_t n = cpuFrequency/1000000;
+	uint32_t n = 1; //cpuFrequency/1000000; //Was way too long!
 	n*=us;
 	if(n > 1) {
 		for(int i = 0; i < n; i++) {
@@ -54,8 +54,8 @@
 	}
  }
  void Nybble() {
-	setE(1);
-	delayUS(1);
+	setE(1);	
+	delayUS(1);	
 	setE(0);
  }
  void command(char i) {
@@ -111,7 +111,7 @@
 	Nybble();
 	command(0x28);
 	command(0x10);
-	command(0x0F);
+	command(0x0C); //Cursor and Blinking off
 	command(0x06);
 
 	displayBufferClear();
@@ -139,8 +139,8 @@
 	command(0x02);
  }
  void displayClear() {
-	command(0x01);
-	delayUS(1530);
+	command(0x01);	
+	delayUS(1530);	
  }
  void displayWriteChar(char c) {
 	write(c);
