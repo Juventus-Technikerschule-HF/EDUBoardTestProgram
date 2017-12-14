@@ -34,6 +34,7 @@ void initPorts() {
 
 	PORTC.DIRSET = PIN3_bm;
 	PORTC.DIRCLR = PIN2_bm;
+	
 }
 
 void writeCCP(volatile register8_t* address, uint8_t value) {
@@ -57,7 +58,8 @@ void clockInit(void) {
 	OSC.CTRL |= OSC_PLLEN_bm;		
 	while(!(OSC.STATUS & OSC_PLLRDY_bm));	
 	writeCCP(&CLK.CTRL, CLK_SCLKSEL_PLL_gc);	
-	//writeCCP(&CLK.CTRL, CLK_SCLKSEL_RC32M_gc);	
+	//writeCCP(&CLK.CTRL, CLK_SCLKSEL_RC32M_gc);
+	
 }
 
 void initTimer(void) {	
@@ -67,6 +69,15 @@ void initTimer(void) {
 	TCC0.CTRLB = 0x00;
 	TCC0.INTCTRLA = 0x03;
 	TCC0.PER = 500;	
+
+	//Config OC1A & OC1B as PWM outputs an  PD4 und PD5
+	PORTD.DIR |= 0x30;
+	TCD1.CTRLA = TC_CLKSEL_DIV8_gc;	
+	TCD1.CTRLB = TC_WGMODE_SINGLESLOPE_gc | TC0_CCAEN_bm | TC0_CCBEN_bm;	
+	TCD1.CTRLD = 0x00;
+	TCD1.PER = 40000;	
+	TCD1.CCA = 35500; //Umschaltwert für Servo1
+	TCD1.CCB = 35500; //Umschaltwert für Servo2	
 }
 
 uint16_t adResult0 = 0;
@@ -77,10 +88,18 @@ void initADC(void) {
 	ADCA.CTRLA = 0x01; //Enable ADC0;
 	ADCA.CTRLB = 0x00; 
 	ADCA.REFCTRL = 0x12;
-	ADCA.PRESCALER = 0x03;
+	ADCA.PRESCALER = 0x03;	
 	ADCA.CH0.CTRL = 0x01; //Startbit at MSB
 	ADCA.CH0.MUXCTRL = (8 << 3) | (7 << 0);
 	ADCA.CH0.INTCTRL = 0x03;
+	ADCB.CTRLA = 0x01;
+	ADCB.CTRLB = 0x00;
+	ADCB.REFCTRL = 0x12;
+	ADCB.PRESCALER = 0x03;
+	ADCB.CH0.CTRL = 0x01;
+	ADCB.CH0.MUXCTRL = (9<<3) | (7<<0);
+	ADCB.CH0.INTCTRL = 0x03;
+	
 }
 
 void initUART(void) {
@@ -94,7 +113,7 @@ void initUART(void) {
 	USARTC0.CTRLB = USART_RXEN_bm | USART_TXEN_bm;
 	USARTC0.CTRLC = USART_CMODE_ASYNCHRONOUS_gc | USART_PMODE_DISABLED_gc | USART_CHSIZE_8BIT_gc;
 	USARTC0.BAUDCTRLA = 207;
-	USARTC0.BAUDCTRLB = 0;
+	USARTC0.BAUDCTRLB = 0;	
 }
 
 typedef enum mode_tag {
@@ -109,6 +128,22 @@ typedef enum mode_tag {
 	MODE_SCREEN_AD,
 	MODE_SCREEN_UART
 } mode_t;
+
+#define POTI1	0
+#define POTI2	1
+void setPotentiometer(unsigned int Poti, float value) {
+	if((value >= 0.0) && (value <= 100.0)) {
+		unsigned int captureValue = (unsigned int)32000 + 4000 - ((value/100) * 4000);
+		switch(Poti) {
+			case 0: 
+				TCD1.CCA = captureValue;
+			break;
+			case 1:
+				TCD1.CCB = captureValue;
+			break;
+		}
+	}
+}
 
 void modeHandler(void) {
 	static mode_t programmode = MODE_INIT;
@@ -164,6 +199,10 @@ void modeHandler(void) {
 			}
 		break;
 		case MODE_SCREEN_ACC:
+
+			setPotentiometer(POTI1, (50+((getACCData(X_AXIS)/80))));
+			setPotentiometer(POTI2, (50+((getACCData(Y_AXIS)/80))));
+
 			displayBufferWriteStringAtPos(0,4,"Accelerometer:");
 			displayBufferWriteStringAtPos(1,2, "x     y     z");
 			convert_sint_string(getACCData(X_AXIS), numberString);
@@ -265,6 +304,9 @@ void modeHandler(void) {
 			displayBufferWriteStringAtPos(1,0,"Pot1: ");
 			convert_uint_string(adResult0, numberString);
 			displayBufferWriteStringAtPos(1, 6, numberString);
+			displayBufferWriteStringAtPos(2,0,"Pot2: ");
+			convert_uint_string(adResult1, numberString);
+			displayBufferWriteStringAtPos(2,6,numberString);
 			displayBufferWriteStringAtPos(3,0, ">Press Button1<");
 			if(getButtonPress(BUTTON1) == SHORT_PRESSED) {
 				programmode = MODE_SCREEN_UART;
@@ -301,6 +343,10 @@ int main(void)
 	initTimer();
 	initADC();
 	initUART();
+
+	setPotentiometer(POTI1, 50);
+	setPotentiometer(POTI2, 50);
+
 	PMIC.CTRL |= PMIC_LOLVLEN_bm | PMIC_MEDLVLEN_bm | PMIC_HILVLEN_bm;	
 	sei();		
 	
@@ -336,6 +382,7 @@ ISR(TCC0_OVF_vect)
 	static uint8_t count = 1;
 	
 	ADCA.CH0.CTRL |= 0x80; //Startbit at MSB
+	ADCB.CH0.CTRL |= 0x80;
 	if(count % 10 == 0) {		
 		tenMsFlag = 1;		
 	}
@@ -349,6 +396,9 @@ ISR(TCC0_OVF_vect)
 ISR(ADCA_CH0_vect) {
 	adResult0 = ADCA.CH0.RES;
 	//ADCA.CH0.INTFLAGS = 0x01;
+}
+ISR(ADCB_CH0_vect) {
+	adResult1 = ADCB.CH0.RES;
 }
 
 ISR(USARTE1_RXC_vect) {
@@ -369,4 +419,3 @@ ISR(USARTC0_RXC_vect) {
 ISR(USARTC0_TXC_vect) {
 
 }
-
