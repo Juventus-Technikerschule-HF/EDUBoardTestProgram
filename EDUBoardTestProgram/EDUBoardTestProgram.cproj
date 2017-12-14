@@ -39,7 +39,7 @@
       </framework-data>
     </AsfFrameworkConfig>
     <avrtool>com.atmel.avrdbg.tool.edbg</avrtool>
-    <avrtoolserialnumber>ATMLEDBGC04201000040</avrtoolserialnumber>
+    <avrtoolserialnumber>ATMLEDBGC04201100011</avrtoolserialnumber>
     <avrdeviceexpectedsignature>0x1E9742</avrdeviceexpectedsignature>
     <com_atmel_avrdbg_tool_atmelice>
       <ToolOptions>
@@ -72,9 +72,20 @@
         <InterfaceName>JTAG</InterfaceName>
       </ToolOptions>
       <ToolType>com.atmel.avrdbg.tool.edbg</ToolType>
-      <ToolNumber>ATMLEDBGC04201000040</ToolNumber>
+      <ToolNumber>ATMLEDBGC04201100011</ToolNumber>
       <ToolName>EDBG</ToolName>
     </com_atmel_avrdbg_tool_edbg>
+    <com_atmel_avrdbg_tool_simulator>
+      <ToolOptions xmlns="">
+        <InterfaceProperties>
+        </InterfaceProperties>
+        <InterfaceName>JTAG</InterfaceName>
+      </ToolOptions>
+      <ToolType xmlns="">com.atmel.avrdbg.tool.simulator</ToolType>
+      <ToolNumber xmlns="">
+      </ToolNumber>
+      <ToolName xmlns="">Simulator</ToolName>
+    </com_atmel_avrdbg_tool_simulator>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <ToolchainSettings>
@@ -191,6 +202,12 @@
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="PortDefines.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="twiMaster.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="twiMaster.h">
       <SubType>compile</SubType>
     </Compile>
   </ItemGroup>
