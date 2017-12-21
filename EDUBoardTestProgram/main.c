@@ -338,7 +338,7 @@ int main(void)
 	initButtons();
 	setupPin();
 	
-	displayInit();
+	
 	LSM9DS1Init();
 	initTimer();
 	initADC();
@@ -349,6 +349,8 @@ int main(void)
 
 	PMIC.CTRL |= PMIC_LOLVLEN_bm | PMIC_MEDLVLEN_bm | PMIC_HILVLEN_bm;	
 	sei();		
+
+	displayInit();
 	
 	displayBufferClear();
 	
@@ -359,7 +361,7 @@ int main(void)
     while (1) 
     {
 		//setPin(OFF);
-		displayUpdateWorker();
+		//displayUpdateWorker();
 		//setPin(ON);
 		if(tenMsFlag != 0) {
 			tenMsFlag = 0;
@@ -368,11 +370,13 @@ int main(void)
 		}
 
 		if(hundredMsFlag != 0) {			
+			
 			hundredMsFlag = 0;
 			readTempData();
 			readGyroData();
 			readACCData();
 			readMagData();			
+			displayForceUpdateBuffer();
 		}		
     }
 }

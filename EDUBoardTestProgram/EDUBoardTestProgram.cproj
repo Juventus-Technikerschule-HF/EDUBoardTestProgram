@@ -39,7 +39,7 @@
       </framework-data>
     </AsfFrameworkConfig>
     <avrtool>com.atmel.avrdbg.tool.edbg</avrtool>
-    <avrtoolserialnumber>ATMLEDBGC04201100011</avrtoolserialnumber>
+    <avrtoolserialnumber>ATMLEDBGC04201100001</avrtoolserialnumber>
     <avrdeviceexpectedsignature>0x1E9742</avrdeviceexpectedsignature>
     <com_atmel_avrdbg_tool_atmelice>
       <ToolOptions>
@@ -72,7 +72,7 @@
         <InterfaceName>JTAG</InterfaceName>
       </ToolOptions>
       <ToolType>com.atmel.avrdbg.tool.edbg</ToolType>
-      <ToolNumber>ATMLEDBGC04201100011</ToolNumber>
+      <ToolNumber>ATMLEDBGC04201100001</ToolNumber>
       <ToolName>EDBG</ToolName>
     </com_atmel_avrdbg_tool_edbg>
     <com_atmel_avrdbg_tool_simulator>
@@ -175,6 +175,12 @@
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="GPIODebug.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="lcd_ks0066_4bit_io.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="lcd_ks0066_4bit_io.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="LSM9DS1Defines.h">
