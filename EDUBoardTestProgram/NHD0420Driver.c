@@ -8,6 +8,7 @@
  #include <avr/interrupt.h>
  #include "NHD0420Driver.h"
  #include "GPIODebug.h"
+ #include "st7066driver.h"
 
  uint32_t cpuFrequency = 32000000;
 
@@ -15,17 +16,18 @@
  uint8_t displayPos = 0;
  char displayBuffer[4][20];
 
- void delayUS(uint32_t us) {
-	uint32_t n = 1; //cpuFrequency/1000000; //Was way too long!
-	n*=us;
-	if(n > 1) {
-		for(int i = 0; i < n; i++) {
-			asm volatile("nop");
-		}
-	} else {
-		asm volatile("nop");
-	}
- }
+//  void delayUS(uint32_t us) {
+// 	uint32_t n = 1; //cpuFrequency/1000000; //Was way too long!
+// 	n*=us;
+// 	if(n > 1) {
+// 		for(int i = 0; i < n; i++) {
+// 			asm volatile("nop");
+// 		}
+// 	} else {
+// 		asm volatile("nop");
+// 	}
+//  }
+ /*
  void setPort(uint8_t data) {
 	data &= 0x0F;
 	data <<= 4;
@@ -74,20 +76,22 @@
 	setPort(i & 0x0F);
 	Nybble();
  }
-
+ */
  void displayCPUClockConfig(uint32_t frequency) {
-	cpuFrequency = frequency;
+	//cpuFrequency = frequency;
  }
 
- void initDisplayTimer(uint8_t updateRateHz) {
-	//TCF0.CTRLA = TC_TC0_CLKSEL_DIV64_gc;
-	TCF0.CTRLA = TC_CLKSEL_DIV64_gc;
-	TCF0.CTRLB = 0x00;
-	TCF0.INTCTRLA = 0x02;
-	TCF0.PER = (uint16_t) (500000 / updateRateHz);
+ void initDisplayTimer(uint8_t updateRateHz) {		
+ 	TCE1.CTRLA = TC_CLKSEL_DIV64_gc;
+ 	TCE1.CTRLB = 0x00;
+	TCE1.CTRLE = 0x00;
+ 	TCE1.INTCTRLA = 0x01;
+ 	TCE1.PER = (uint16_t) (500000 / updateRateHz);
  }
 
  void displayInit() {
+
+ /*
 	PORTA.DIRSET = PIN4_bm;
 	PORTA.DIRSET = PIN5_bm;
 	PORTA.DIRSET = PIN6_bm;
@@ -97,7 +101,6 @@
 	PORTD.DIRSET = PIN2_bm;
 	PORTA.OUT &= 0x0F;
 	PORTD.OUT &= 0xF8;
-
 	delayUS(40000);
 	setPort(0x03);
 	delayUS(5000);
@@ -113,42 +116,49 @@
 	command(0x10);
 	command(0x0C); //Cursor and Blinking off
 	command(0x06);
-
 	displayBufferClear();
 	initDisplayTimer(10);
-	
+	*/
+
+	LCDinit();
+	initDisplayTimer(10);
  }
  void displaySetPos(int line, int pos) {
-	switch(line) {
-		case 0: 
-			command(0x80 + 0x00 + pos);
-		break;
-		case 1: 
-			command(0x80 + 0x40 + pos);
-		break;
-		case 2:
-			command(0x80 + 0x14 + pos);
-		break;
-		case 3:
-			command(0x80 + 0x54 + pos);
-		break;
-	}
-	delayUS(39);
+	
+// 	switch(line) {
+// 		case 0: 
+// 			command(0x80 + 0x00 + pos);
+// 		break;
+// 		case 1: 
+// 			command(0x80 + 0x40 + pos);
+// 		break;
+// 		case 2:
+// 			command(0x80 + 0x14 + pos);
+// 		break;
+// 		case 3:
+// 			command(0x80 + 0x54 + pos);
+// 		break;
+// 	}
+// 	delayUS(39);
+	LCDGotoXY(pos, line);
  }
  void displayHome() {
-	command(0x02);
+	//command(0x02);
+	LCDhome();
  }
  void displayClear() {
-	command(0x01);	
-	delayUS(1530);	
+// 	command(0x01);	
+// 	delayUS(1530);
+	LCDclr();	
  }
  void displayWriteChar(char c) {
-	write(c);
-	delayUS(43);
+// 	write(c);
+// 	delayUS(43);
+	LCDchar(c);
  }
  void displayWriteCharAtPos(int line, int pos, char c) {
-	displaySetPos(line, pos);
-	displayWriteChar(c);
+ 	displaySetPos(line, pos);
+ 	displayWriteChar(c);	
  }
  void displayWriteString(char* s) {
 	for(int i = 0; i < 20; i++) {
@@ -222,9 +232,7 @@ void displayUpdateWorker(void) {
 		}	
 	}
 }
- ISR(TCF0_OVF_vect) {
-	//Timer F0 Overflow
-	//Update Display
-	//Write Buffer to Display
+ 
+ISR(TCE1_OVF_vect) {
 	displayUpdate = 1;
- }
+}

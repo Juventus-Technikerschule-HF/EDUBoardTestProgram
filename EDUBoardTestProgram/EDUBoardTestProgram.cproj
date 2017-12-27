@@ -177,6 +177,12 @@
     <Compile Include="GPIODebug.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="st7066driver.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="st7066driver.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="LSM9DS1Defines.h">
       <SubType>compile</SubType>
     </Compile>

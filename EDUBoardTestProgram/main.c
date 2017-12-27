@@ -338,7 +338,7 @@ int main(void)
 	initButtons();
 	setupPin();
 	
-	displayInit();
+	
 	LSM9DS1Init();
 	initTimer();
 	initADC();
@@ -347,9 +347,10 @@ int main(void)
 	setPotentiometer(POTI1, 50);
 	setPotentiometer(POTI2, 50);
 
-	PMIC.CTRL |= PMIC_LOLVLEN_bm | PMIC_MEDLVLEN_bm | PMIC_HILVLEN_bm;	
+	PMIC.CTRL |= PMIC_LOLVLEN_bm | PMIC_MEDLVLEN_bm | PMIC_HILVLEN_bm | PMIC_RREN_bm;	
 	sei();		
 	
+	displayInit();
 	displayBufferClear();
 	
 	
