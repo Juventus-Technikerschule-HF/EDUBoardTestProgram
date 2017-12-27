@@ -166,7 +166,7 @@ void modeHandler(void) {
 			displayBufferWriteStringAtPos(0,4, "Main-Screen");
 			displayBufferWriteStringAtPos(1, 0, "EDUBoardTestProgram");			
 			convert_float_string(SOFTWARE_VERSION, numberString, 1);
-			displayBufferWriteStringAtPos(2,4, "Version: ");
+			displayBufferWriteStringAtPos(2,4, "Version:           ");
 			displayBufferWriteStringAtPos(2, 13, numberString);
 			displayBufferWriteStringAtPos(3,0, ">Press Button1<");
 			if(getButtonPress(BUTTON1) == SHORT_PRESSED) {

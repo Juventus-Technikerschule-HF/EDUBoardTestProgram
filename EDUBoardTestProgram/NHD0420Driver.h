@@ -9,6 +9,8 @@
 #ifndef NHD0420DRIVER_H_
 #define NHD0420DRIVER_H_
 
+
+
 #define LINE_1		0x00
 #define LINE_2		0x01
 #define LINE_3		0x02

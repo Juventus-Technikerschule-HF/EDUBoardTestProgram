@@ -4,28 +4,21 @@
  * Created: 15.05.2017 08:32:12
  *  Author: mburger
  */ 
+ #define F_CPU		32000000UL
  #include <avr/io.h>
- #include <avr/interrupt.h>
+ #include <avr/interrupt.h> 
+ #include <util/delay.h>
  #include "NHD0420Driver.h"
  #include "GPIODebug.h"
 
+ 
  uint32_t cpuFrequency = 32000000;
+
 
  uint8_t displayLine = 0;
  uint8_t displayPos = 0;
  char displayBuffer[4][20];
-
- void delayUS(uint32_t us) {
-	uint32_t n = 1; //cpuFrequency/1000000; //Was way too long!
-	n*=us;
-	if(n > 1) {
-		for(int i = 0; i < n; i++) {
-			asm volatile("nop");
-		}
-	} else {
-		asm volatile("nop");
-	}
- }
+ 
  void setPort(uint8_t data) {
 	data &= 0x0F;
 	data <<= 4;
@@ -54,9 +47,10 @@
 	}
  }
  void Nybble() {
-	setE(1);	
-	delayUS(1);	
+	setE(1);
+	_delay_us(10);
 	setE(0);
+	_delay_us(10);
  }
  void command(char i) {
 	setPort((i>>4)&0x0F);
@@ -79,41 +73,35 @@
 	cpuFrequency = frequency;
  }
 
- void initDisplayTimer(uint8_t updateRateHz) {
-	//TCF0.CTRLA = TC_TC0_CLKSEL_DIV64_gc;
+ void initDisplayTimer(uint8_t updateRateHz) {	
 	TCF0.CTRLA = TC_CLKSEL_DIV64_gc;
 	TCF0.CTRLB = 0x00;
 	TCF0.INTCTRLA = 0x02;
 	TCF0.PER = (uint16_t) (500000 / updateRateHz);
  }
 
- void displayInit() {
-	PORTA.DIRSET = PIN4_bm;
-	PORTA.DIRSET = PIN5_bm;
-	PORTA.DIRSET = PIN6_bm;
-	PORTA.DIRSET = PIN7_bm;
-	PORTD.DIRSET = PIN0_bm;
-	PORTD.DIRSET = PIN1_bm;
-	PORTD.DIRSET = PIN2_bm;
+ void displayInit() {	
+	_delay_ms(10);
 	PORTA.OUT &= 0x0F;
-	PORTD.OUT &= 0xF8;
-
-	delayUS(40000);
+	PORTD.OUT &= ~(0x07);
+	PORTA.DIRSET = 0xF0;
+	PORTD.DIRSET = 0x07;
+	PORTA.OUT &= 0x0F;
+	PORTD.OUT &= ~(0x07);
+	_delay_ms(40);
 	setPort(0x03);
-	delayUS(5000);
-	Nybble();
-	delayUS(160);
-	Nybble();
-	delayUS(160);
-	Nybble();
-	delayUS(160);
-	setPort(0x02);
-	Nybble();
+	_delay_ms(5);
+	
+	for(int i = 0; i < 10;i++) {
+		Nybble();
+		_delay_us(300);
+	}
+ 	setPort(0x02);
+ 	Nybble();	
 	command(0x28);
 	command(0x10);
 	command(0x0C); //Cursor and Blinking off
 	command(0x06);
-
 	displayBufferClear();
 	initDisplayTimer(10);
 	
@@ -133,18 +121,18 @@
 			command(0x80 + 0x54 + pos);
 		break;
 	}
-	delayUS(39);
+	_delay_us(39);
  }
  void displayHome() {
 	command(0x02);
  }
  void displayClear() {
 	command(0x01);	
-	delayUS(1530);	
+	_delay_us(1530);	
  }
  void displayWriteChar(char c) {
 	write(c);
-	delayUS(43);
+	_delay_us(43);
  }
  void displayWriteCharAtPos(int line, int pos, char c) {
 	displaySetPos(line, pos);
